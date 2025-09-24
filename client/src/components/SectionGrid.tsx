@@ -12,6 +12,7 @@ interface SectionGridProps {
   onInstall: (section: Section) => void;
   onLoadMore?: () => void;
   hasMore?: boolean;
+  installedSectionIds?: string[];
 }
 
 export default function SectionGrid({
@@ -21,7 +22,8 @@ export default function SectionGrid({
   onPreview,
   onInstall,
   onLoadMore,
-  hasMore = false
+  hasMore = false,
+  installedSectionIds = []
 }: SectionGridProps) {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
 
@@ -84,6 +86,7 @@ export default function SectionGrid({
               section={section}
               onPreview={onPreview}
               onInstall={onInstall}
+              isInstalled={installedSectionIds.includes(section.id)}
             />
           </div>
         ))}

@@ -10,7 +10,7 @@ import {
   type InsertInstallation
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, like, and, or } from "drizzle-orm";
+import { eq, like, and, or, ilike, gte, lte, sql } from "drizzle-orm";
 
 // Storage interface with section management capabilities
 export interface IStorage {
@@ -24,6 +24,15 @@ export interface IStorage {
   getSectionById(id: string): Promise<Section | undefined>;
   getSectionsByCategory(category: string): Promise<Section[]>;
   searchSections(query: string): Promise<Section[]>;
+  filterSections(filters: {
+    search?: string;
+    category?: string;
+    priceMin?: number;
+    priceMax?: number;
+    isFree?: boolean;
+    limit?: number;
+    offset?: number;
+  }): Promise<Section[]>;
   createSection(section: InsertSection): Promise<Section>;
   updateSectionDownloads(id: string): Promise<void>;
   
@@ -78,10 +87,69 @@ export class DatabaseStorage implements IStorage {
     const searchPattern = `%${query.toLowerCase()}%`;
     return await db.select().from(sections).where(
       or(
-        like(sections.name, searchPattern),
-        like(sections.description, searchPattern)
+        ilike(sections.name, searchPattern),
+        ilike(sections.description, searchPattern)
       )
     );
+  }
+
+  async filterSections(filters: {
+    search?: string;
+    category?: string;
+    priceMin?: number;
+    priceMax?: number;
+    isFree?: boolean;
+    limit?: number;
+    offset?: number;
+  }): Promise<Section[]> {
+    const conditions = [];
+    
+    // Search filter (case-insensitive)
+    if (filters.search?.trim()) {
+      const searchPattern = `%${filters.search.toLowerCase()}%`;
+      conditions.push(
+        or(
+          ilike(sections.name, searchPattern),
+          ilike(sections.description, searchPattern)
+        )
+      );
+    }
+    
+    // Category filter
+    if (filters.category && filters.category !== 'All Categories') {
+      conditions.push(eq(sections.category, filters.category));
+    }
+    
+    // Price filters
+    if (filters.isFree !== undefined) {
+      conditions.push(eq(sections.isFree, filters.isFree));
+    } else {
+      if (filters.priceMin !== undefined) {
+        conditions.push(gte(sql`CAST(${sections.price} as DECIMAL)`, filters.priceMin));
+      }
+      if (filters.priceMax !== undefined) {
+        conditions.push(lte(sql`CAST(${sections.price} as DECIMAL)`, filters.priceMax));
+      }
+    }
+    
+    let query = db.select().from(sections);
+    
+    if (conditions.length > 0) {
+      query = query.where(and(...conditions));
+    }
+    
+    // Add ordering for consistent results
+    query = query.orderBy(sections.createdAt);
+    
+    // Add pagination
+    if (filters.limit) {
+      query = query.limit(filters.limit);
+    }
+    if (filters.offset) {
+      query = query.offset(filters.offset);
+    }
+    
+    return await query;
   }
 
   async createSection(insertSection: InsertSection): Promise<Section> {

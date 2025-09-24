@@ -8,9 +8,10 @@ interface SectionCardProps {
   section: Section;
   onPreview: (section: Section) => void;
   onInstall: (section: Section) => void;
+  isInstalled?: boolean;
 }
 
-export default function SectionCard({ section, onPreview, onInstall }: SectionCardProps) {
+export default function SectionCard({ section, onPreview, onInstall, isInstalled = false }: SectionCardProps) {
   const handlePreview = () => {
     console.log('Preview triggered for section:', section.name);
     onPreview(section);
@@ -45,6 +46,11 @@ export default function SectionCard({ section, onPreview, onInstall }: SectionCa
             </div>
           </div>
           <div className="absolute top-3 right-3 flex gap-2">
+            {isInstalled && (
+              <Badge variant="default" className="bg-green-600 text-white">
+                Installed
+              </Badge>
+            )}
             {section.isPopular && (
               <Badge variant="secondary" className="bg-primary text-primary-foreground">
                 Popular

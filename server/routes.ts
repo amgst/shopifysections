@@ -10,38 +10,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get all sections with optional filtering
   app.get("/api/sections", async (req, res) => {
     try {
-      const { category, search, price_filter } = req.query;
+      const { category, search, price_filter, page = '1', limit = '20' } = req.query;
       
-      let sections;
+      // Parse pagination parameters
+      const pageNum = parseInt(page as string) || 1;
+      const limitNum = parseInt(limit as string) || 20;
+      const offset = (pageNum - 1) * limitNum;
       
-      // Apply search if provided
-      if (search && typeof search === 'string') {
-        sections = await storage.searchSections(search);
-      } else if (category && typeof category === 'string') {
-        sections = await storage.getSectionsByCategory(category);
-      } else {
-        sections = await storage.getAllSections();
+      // Parse price filter to price range
+      let priceMin: number | undefined;
+      let priceMax: number | undefined;
+      let isFree: boolean | undefined;
+      
+      if (price_filter && typeof price_filter === 'string') {
+        switch (price_filter) {
+          case 'Free Only':
+            isFree = true;
+            break;
+          case 'Under $5':
+            isFree = false;
+            priceMax = 4.99;
+            break;
+          case '$5 - $15':
+            isFree = false;
+            priceMin = 5;
+            priceMax = 15;
+            break;
+          case '$15 - $25':
+            isFree = false;
+            priceMin = 15.01;
+            priceMax = 25;
+            break;
+          case 'Over $25':
+            isFree = false;
+            priceMin = 25.01;
+            break;
+        }
       }
       
-      // Apply price filtering if provided
-      if (price_filter && typeof price_filter === 'string' && sections) {
-        sections = sections.filter(section => {
-          switch (price_filter) {
-            case 'Free Only':
-              return section.isFree;
-            case 'Under $5':
-              return !section.isFree && parseFloat(section.price) < 5;
-            case '$5 - $15':
-              return !section.isFree && parseFloat(section.price) >= 5 && parseFloat(section.price) <= 15;
-            case '$15 - $25':
-              return !section.isFree && parseFloat(section.price) > 15 && parseFloat(section.price) <= 25;
-            case 'Over $25':
-              return !section.isFree && parseFloat(section.price) > 25;
-            default:
-              return true;
-          }
-        });
-      }
+      const sections = await storage.filterSections({
+        search: search as string,
+        category: category as string,
+        priceMin,
+        priceMax,
+        isFree,
+        limit: limitNum,
+        offset
+      });
       
       res.json(sections);
     } catch (error) {

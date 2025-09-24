@@ -10,14 +10,30 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Moon, Sun, Search, User, ShoppingBag, Bell, Settings } from "lucide-react";
 import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 
 interface HeaderProps {
   shopName?: string;
-  installedSectionsCount?: number;
+  shopDomain?: string;
 }
 
-export default function Header({ shopName = "My Shopify Store", installedSectionsCount = 0 }: HeaderProps) {
+export default function Header({ 
+  shopName = "My Shopify Store",
+  shopDomain = "demo-fashion-store.myshopify.com" 
+}: HeaderProps) {
   const [isDark, setIsDark] = useState(false);
+
+  // Fetch installation count for the shop
+  const { data: installations = [] } = useQuery({
+    queryKey: ['installations', shopDomain],
+    queryFn: async () => {
+      const response = await fetch(`/api/installations?shopDomain=${shopDomain}`);
+      if (!response.ok) throw new Error('Failed to fetch installations');
+      return response.json();
+    },
+  });
+
+  const installedSectionsCount = installations.length;
 
   useEffect(() => {
     // Check if dark mode is already set

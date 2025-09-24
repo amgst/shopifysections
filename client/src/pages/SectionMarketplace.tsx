@@ -39,6 +39,19 @@ export default function SectionMarketplace() {
     },
   });
 
+  // Fetch installations for the shop
+  const { data: installations = [] } = useQuery({
+    queryKey: ['installations', shopDomain],
+    queryFn: async () => {
+      const response = await fetch(`/api/installations?shopDomain=${shopDomain}`);
+      if (!response.ok) throw new Error('Failed to fetch installations');
+      return response.json();
+    },
+  });
+
+  // Get installed section IDs
+  const installedSectionIds = installations.map((installation: any) => installation.sectionId);
+
   // Install section mutation
   const installMutation = useMutation({
     mutationFn: async (sectionId: string) => {
@@ -94,7 +107,7 @@ export default function SectionMarketplace() {
     <div className="min-h-screen bg-background">
       <Header 
         shopName="Demo Fashion Store" 
-        installedSectionsCount={3} // todo: remove mock functionality
+        shopDomain={shopDomain}
       />
       
       <main className="container mx-auto px-4 py-8">
@@ -132,6 +145,7 @@ export default function SectionMarketplace() {
           onInstall={handleInstall}
           onLoadMore={handleLoadMore}
           hasMore={false}
+          installedSectionIds={installedSectionIds}
         />
 
         {/* Preview Modal */}
