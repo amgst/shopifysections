@@ -1,133 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Header from "@/components/Header";
 import SearchFilters from "@/components/SearchFilters";
 import SectionGrid from "@/components/SectionGrid";
 import SectionPreviewModal from "@/components/SectionPreviewModal";
+import { useToast } from "@/hooks/use-toast";
 import type { Section } from "@shared/schema";
-
-// Mock data for demonstration //todo: remove mock functionality
-const mockSections: Section[] = [
-  {
-    id: '1',
-    name: 'Hero Banner Pro',
-    description: 'A stunning hero section with animated backgrounds, call-to-action buttons, and video backgrounds. Perfect for landing pages and promotional content.',
-    category: 'Hero Banners',
-    price: '12.99',
-    isFree: false,
-    previewImage: 'https://images.unsplash.com/photo-1557804506-669a67965ba0?w=400&h=300&fit=crop',
-    liquidCode: '',
-    settingsSchema: null,
-    isPopular: true,
-    downloads: 1250,
-    rating: '4.8',
-    createdAt: new Date(),
-  },
-  {
-    id: '2',
-    name: 'Customer Reviews Widget',
-    description: 'Display customer testimonials with star ratings, customer photos, and social proof indicators.',
-    category: 'Testimonials',
-    price: '0.00',
-    isFree: true,
-    previewImage: 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400&h=300&fit=crop',
-    liquidCode: '',
-    settingsSchema: null,
-    isPopular: false,
-    downloads: 892,
-    rating: '4.6',
-    createdAt: new Date(),
-  },
-  {
-    id: '3',
-    name: 'Product Showcase Grid',
-    description: 'Feature your best products with elegant grid layout, hover effects, and quick view functionality.',
-    category: 'Product Features',
-    price: '8.99',
-    isFree: false,
-    previewImage: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=400&h=300&fit=crop',
-    liquidCode: '',
-    settingsSchema: null,
-    isPopular: true,
-    downloads: 2103,
-    rating: '4.9',
-    createdAt: new Date(),
-  },
-  {
-    id: '4',
-    name: 'FAQ Accordion',
-    description: 'Interactive FAQ section with smooth accordion animations and search functionality.',
-    category: 'FAQ Sections',
-    price: '5.99',
-    isFree: false,
-    previewImage: 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=400&h=300&fit=crop',
-    liquidCode: '',
-    settingsSchema: null,
-    isPopular: false,
-    downloads: 567,
-    rating: '4.5',
-    createdAt: new Date(),
-  },
-  {
-    id: '5',
-    name: 'Image Gallery Masonry',
-    description: 'Beautiful masonry layout gallery with lightbox functionality and image lazy loading.',
-    category: 'Image Galleries',
-    price: '9.99',
-    isFree: false,
-    previewImage: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&h=300&fit=crop',
-    liquidCode: '',
-    settingsSchema: null,
-    isPopular: true,
-    downloads: 734,
-    rating: '4.7',
-    createdAt: new Date(),
-  },
-  {
-    id: '6',
-    name: 'Newsletter Signup Form',
-    description: 'Convert visitors with beautiful newsletter signup forms and email collection widgets.',
-    category: 'Newsletter Signup',
-    price: '0.00',
-    isFree: true,
-    previewImage: 'https://images.unsplash.com/photo-1596526131083-e8c633c948d2?w=400&h=300&fit=crop',
-    liquidCode: '',
-    settingsSchema: null,
-    isPopular: false,
-    downloads: 1456,
-    rating: '4.4',
-    createdAt: new Date(),
-  },
-  {
-    id: '7',
-    name: 'Countdown Timer',
-    description: 'Create urgency with beautiful countdown timers for sales, launches, and special events.',
-    category: 'Countdown Timers',
-    price: '7.99',
-    isFree: false,
-    previewImage: 'https://images.unsplash.com/photo-1611224923853-80b023f02d71?w=400&h=300&fit=crop',
-    liquidCode: '',
-    settingsSchema: null,
-    isPopular: true,
-    downloads: 923,
-    rating: '4.6',
-    createdAt: new Date(),
-  },
-  {
-    id: '8',
-    name: 'Contact Form Builder',
-    description: 'Professional contact forms with validation, spam protection, and email notifications.',
-    category: 'Contact Forms',
-    price: '6.99',
-    isFree: false,
-    previewImage: 'https://images.unsplash.com/photo-1586717791821-3f44a563fa4c?w=400&h=300&fit=crop',
-    liquidCode: '',
-    settingsSchema: null,
-    isPopular: false,
-    downloads: 445,
-    rating: '4.3',
-    createdAt: new Date(),
-  },
-];
 
 export default function SectionMarketplace() {
   // Filter and search state
@@ -140,36 +18,59 @@ export default function SectionMarketplace() {
   const [previewSection, setPreviewSection] = useState<Section | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   
-  // Loading state
-  const [isLoading, setIsLoading] = useState(false);
+  // Shop context (in a real app, this would come from Shopify authentication)
+  const shopDomain = 'demo-fashion-store.myshopify.com';
+  
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
-  // Filter sections based on current filters //todo: remove mock functionality
-  const filteredSections = mockSections.filter(section => {
-    const matchesSearch = searchQuery === '' || 
-      section.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      section.description.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    const matchesCategory = selectedCategory === 'All Categories' || 
-      section.category === selectedCategory;
-    
-    const matchesPrice = (() => {
-      switch (priceFilter) {
-        case 'Free Only':
-          return section.isFree;
-        case 'Under $5':
-          return !section.isFree && parseFloat(section.price) < 5;
-        case '$5 - $15':
-          return !section.isFree && parseFloat(section.price) >= 5 && parseFloat(section.price) <= 15;
-        case '$15 - $25':
-          return !section.isFree && parseFloat(section.price) > 15 && parseFloat(section.price) <= 25;
-        case 'Over $25':
-          return !section.isFree && parseFloat(section.price) > 25;
-        default:
-          return true;
+  // Fetch sections with filters
+  const { data: sections = [], isLoading } = useQuery({
+    queryKey: ['sections', { category: selectedCategory, search: searchQuery, priceFilter }],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (selectedCategory !== 'All Categories') params.append('category', selectedCategory);
+      if (searchQuery) params.append('search', searchQuery);
+      if (priceFilter !== 'All Prices') params.append('price_filter', priceFilter);
+      
+      const response = await fetch(`/api/sections?${params}`);
+      if (!response.ok) throw new Error('Failed to fetch sections');
+      return response.json();
+    },
+  });
+
+  // Install section mutation
+  const installMutation = useMutation({
+    mutationFn: async (sectionId: string) => {
+      const response = await fetch(`/api/sections/${sectionId}/install`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ shopDomain }),
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to install section');
       }
-    })();
-    
-    return matchesSearch && matchesCategory && matchesPrice;
+      
+      return response.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Section Installed!",
+        description: `${data.section.name} has been added to your theme. You can now use it in the Shopify theme editor.`,
+      });
+      // Invalidate queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ['sections'] });
+      queryClient.invalidateQueries({ queryKey: ['installations'] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Installation Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
   });
 
   const handlePreview = (section: Section) => {
@@ -180,15 +81,13 @@ export default function SectionMarketplace() {
 
   const handleInstall = (section: Section) => {
     console.log('Installing section:', section.name);
-    // todo: remove mock functionality - Replace with actual installation logic
-    alert(`Installing "${section.name}" to your theme!\n\nThis would normally:\n1. Add the section to your theme\n2. Make it available in the theme editor\n3. Update your billing if it's a paid section`);
+    installMutation.mutate(section.id);
   };
 
   const handleLoadMore = () => {
     console.log('Loading more sections...');
-    // todo: remove mock functionality - Replace with actual API call
-    setIsLoading(true);
-    setTimeout(() => setIsLoading(false), 1000);
+    // In a real implementation, this would fetch the next page of results
+    // For now, we show all results at once
   };
 
   return (
@@ -226,13 +125,13 @@ export default function SectionMarketplace() {
 
         {/* Section Grid */}
         <SectionGrid
-          sections={filteredSections}
+          sections={sections}
           viewMode={viewMode}
           isLoading={isLoading}
           onPreview={handlePreview}
           onInstall={handleInstall}
           onLoadMore={handleLoadMore}
-          hasMore={filteredSections.length > 0}
+          hasMore={false}
         />
 
         {/* Preview Modal */}
