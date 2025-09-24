@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { sections } from "@shared/schema";
+import { sections, installations } from "@shared/schema";
 
 const seedSections = [
   {
@@ -390,10 +390,15 @@ export async function seedDatabase() {
   try {
     console.log('Starting database seeding...');
     
-    // Clear existing sections
+    // Clear existing data (in order due to foreign key constraints)
+    console.log('Clearing existing installations...');
+    await db.delete(installations);
+    
+    console.log('Clearing existing sections...');
     await db.delete(sections);
     
     // Insert seed sections
+    console.log('Inserting new sections...');
     await db.insert(sections).values(seedSections);
     
     console.log(`Seeded ${seedSections.length} sections successfully!`);
