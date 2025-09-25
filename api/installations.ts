@@ -1,8 +1,5 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
-import { DatabaseStorage } from '../server/storage';
-
-// Initialize storage directly in the API route
-const storage = new DatabaseStorage();
+import { storage } from './storage';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Origin', '*');
