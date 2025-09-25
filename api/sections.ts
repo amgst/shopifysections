@@ -6,7 +6,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  
+
   if (req.method === 'OPTIONS') {
     res.status(200).end();
     return;
@@ -15,15 +15,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method === 'GET') {
     try {
       const { category, search, price_filter, page = '1', limit = '20' } = req.query;
-      
-      const pageNum = parseInt(page as string) || 1;
-      const limitNum = parseInt(limit as string) || 20;
+
+      const pageNum = parseInt(Array.isArray(page) ? page[0] : page) || 1;
+      const limitNum = parseInt(Array.isArray(limit) ? limit[0] : limit) || 20;
       const offset = (pageNum - 1) * limitNum;
-      
+
       let priceMin: number | undefined;
       let priceMax: number | undefined;
       let isFree: boolean | undefined;
-      
+
       if (price_filter && typeof price_filter === 'string') {
         switch (price_filter) {
           case 'Free Only':
@@ -49,7 +49,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             break;
         }
       }
-      
+
       const sections = await storage.filterSections({
         search: search as string,
         category: category as string,
@@ -57,10 +57,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         priceMax,
         isFree,
         limit: limitNum,
-        offset
+        offset,
       });
-      
-      res.json(sections);
+
+      res.status(200).json(sections);
     } catch (error) {
       console.error('Error fetching sections:', error);
       res.status(500).json({ error: 'Failed to fetch sections' });
