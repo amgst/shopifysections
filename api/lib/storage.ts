@@ -125,10 +125,10 @@ export class DatabaseStorage implements IStorage {
       conditions.push(eq(sections.isFree, filters.isFree));
     } else {
       if (filters.priceMin !== undefined) {
-        conditions.push(gte(sql`CAST(${sections.price} as DECIMAL)`, filters.priceMin));
+        conditions.push(gte(sections.price, filters.priceMin));
       }
       if (filters.priceMax !== undefined) {
-        conditions.push(lte(sql`CAST(${sections.price} as DECIMAL)`, filters.priceMax));
+        conditions.push(lte(sections.price, filters.priceMax));
       }
     }
     
