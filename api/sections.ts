@@ -1,5 +1,8 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
-import { storage } from '../server/storage';
+import { DatabaseStorage } from '../server/storage';
+
+// Initialize storage directly in the API route
+const storage = new DatabaseStorage();
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Enable CORS
