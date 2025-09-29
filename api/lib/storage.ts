@@ -8,8 +8,8 @@ import {
   type InsertSection,
   type Installation,
   type InsertInstallation
-} from "../../shared/schema";
-import { db } from "../db";
+} from "../../shared/schema.js";
+import { db } from "../db.js";
 import { eq, like, and, or, ilike, gte, lte, sql } from "drizzle-orm";
 
 // Storage interface with section management capabilities
